@@ -168,6 +168,36 @@ solana transfer <SWIG_WALLET_ADDRESS> 1 --url devnet
 # 5. Worker executes transactions via SDK
 ```
 
+## Token Transfers
+
+```typescript
+import { createTransferInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+
+// Get token accounts
+const treasuryTokenAccount = await getAssociatedTokenAddress(
+  MINT_ADDRESS,
+  swigWalletAddress,
+  true // allowOwnerOffCurve for PDAs
+);
+
+// Create transfer instruction
+const transferIx = createTransferInstruction(
+  treasuryTokenAccount,      // from
+  recipientTokenAccount,     // to
+  swigWalletAddress,         // authority (the PDA)
+  1_000_000n,               // amount (with decimals)
+  [],
+  TOKEN_PROGRAM_ID
+);
+
+// Sign through Swig
+const signIxs = await getSignInstructions(swig, workerRole.id, [transferIx]);
+const tx = new Transaction().add(...signIxs);
+await sendAndConfirmTransaction(connection, tx, [workerKeypair]);
+```
+
+**Tested:** Worker with `AllButManageAuthority` successfully transferred USDC from treasury.
+
 ## Key Learnings
 
 1. **ID Encoding**: Swig IDs are right-padded with '0' to 32 chars, then converted to bytes
