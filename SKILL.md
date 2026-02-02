@@ -198,6 +198,36 @@ await sendAndConfirmTransaction(connection, tx, [workerKeypair]);
 
 **Tested:** Worker with `AllButManageAuthority` successfully transferred USDC from treasury.
 
+## Token Limits (Tested)
+
+```typescript
+import { Actions } from '@swig-wallet/classic';
+
+// Create 2 USDC limit for specific mint
+const tokenLimitActions = Actions.set()
+  .tokenLimit({ 
+    mint: USDC_MINT.toBytes(),
+    amount: BigInt(2_000_000)  // 2 tokens (6 decimals)
+  })
+  .get();
+
+// Add agent with this limit
+const addIxs = await getAddAuthorityInstructions(
+  swig,
+  rootRole.id,
+  createEd25519AuthorityInfo(agentPubkey),
+  tokenLimitActions,
+);
+```
+
+**Test Results:**
+- Agent with 2 USDC limit
+- Transfer 1 USDC: ✅ Success
+- Transfer 1 USDC: ✅ Success (total: 2)
+- Transfer 1 USDC: ❌ Rejected (error `0xbc3` - limit exceeded)
+
+The limit is enforced on-chain by the Swig program. Once spent, the limit is consumed until reset (for recurring limits) or authority update.
+
 ## Key Learnings
 
 1. **ID Encoding**: Swig IDs are right-padded with '0' to 32 chars, then converted to bytes
